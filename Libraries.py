@@ -12,3 +12,5 @@ from datetime import datetime
 from zipfile import ZipFile
 from io import BytesIO
 from time import sleep
+import numpy as np
+import matplotlib.pyplot as plt
