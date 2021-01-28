@@ -422,6 +422,8 @@ def fill(data, stock_old, stock_new):
 
 # In[ ]:
 
+### En este archivo plano falta la parte de reproceso, no olvidar agregarlo y editarlo
+
 
 
 
