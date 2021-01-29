@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Libraries
+# libraries
 
-# In[1]:
-
+#%% 
 
 import mysql.connector
 import jupyternotify
@@ -26,23 +25,24 @@ from time import sleep
 ip = get_ipython()
 ip.register_magics(jupyternotify.JupyterNotifyMagics)
 
-
 # # Paramaters
 
 # In[2]:
 
 
 country = 'Ecuador'
-path = '../../ISVParams/'
+path = '../Params/'
 
 # jsons
 for json_file in [file for file in os.listdir(path) if file.endswith('.json')]:  
     with open(path + json_file, encoding='utf8') as f:
         globals()[json_file.split('.')[0].split('_')[1]] = json.load(f)
 
-# queries
-for sql_file in [file for file in os.listdir(path) if file.endswith('.sql')]:
-    globals()[sql_file.split('.')[0]] = open(path + sql_file, encoding='utf8')
+with open('../../../01Code/01ISV/Params/ISV_tokens.json', encoding='utf8') as f:
+        tokens = json.load(f)
+
+query_dates = countries['query_dates']
+query_skus = countries['query_skus']
 
 
 # In[3]:
@@ -80,17 +80,17 @@ conn2 = pyodbc.connect('Driver={SQL Server};Server=' + serversdbs['server'] + ';
 
 
 # TmpID
-df_tmpid = pd.read_sql(query_dates.read(), conn1)
+df_tmpid = pd.read_sql(query_dates, conn1)
 df_tmpid['TmpFecha'] = df_tmpid['TmpFecha'].astype(str).copy()
 
 # ProPstID
-df_ppst = pd.read_sql(query_ppst.read().replace("''", "'" + country + "'"), conn2)
+df_ppst = pd.read_sql(query_skus.replace("''", "'" + country + "'"), conn2)
 df_ppst['ProPstCodBarras'] = df_ppst['ProPstCodBarras'].astype(str).copy()
 
 
 # ## Sales
 
-# In[10]:
+# In[5]:
 
 
 weekly_format = lambda number: '0' + str(number) if (number < 10) else str(number)
@@ -100,17 +100,17 @@ clean_date = lambda str_date: datetime(int(str_date.split('-')[2]), int(str_date
 clean_numbers = lambda str_numb: float(str(str_numb).replace(',',''))
 
 
-# In[29]:
+# In[6]:
 
 
-def unpack_file(response):
+def unpack_data(response):
     file = urlopen(response.json()['download_url'])
     zip_file = ZipFile(BytesIO(file.read()))
     df = pd.read_csv(zip_file.open(zip_file.namelist()[0]), encoding='latin-1', sep=';')
     return df
 
 
-# In[ ]:
+# In[7]:
 
 
 def check_status(status, date):
@@ -118,11 +118,11 @@ def check_status(status, date):
         return (date, status)
 
 
-# In[10]:
+# In[8]:
 
 
-def download_sales(num_week, url, header, body):
-    body["dates"] = ["2020-W" + weekly_format(num_week)]
+def download_sales(anio, num_week, url, header, body):
+    body["dates"] = [str(anio) + "-W" + weekly_format(num_week)]
     resp_sales = requests.post(url, data=json.dumps(body), headers=header)
     if resp_sales.status_code != 200:
         print("Oh, oh, adventurous, problems  in week " + str(num_week) + " :S")
@@ -132,21 +132,20 @@ def download_sales(num_week, url, header, body):
     return df
 
 
-# In[11]:
+# In[9]:
 
 
 def clean_sales(data):    
-    data['Cód. Cadena'] = data['Cód. Cadena'].astype(str).copy()
-    data['EAN'] = data['EAN'].astype(str).copy()    
+    data['EAN'] = data['EAN'].astype(str).copy()
     for col in ['Unidades', 'Costos B2B']:
         data[col] = data[col].map(clean_numbers).copy()
-    data['ID_SaSt'] = data['EAN'].astype(str) + data['Cód. Cadena'].astype(str) + data['Cadena'] + data['Local']  
+    data['ID_SaSt'] = data['EAN'].astype(str) + data['Cadena'] + data['Local']  
     return data
 
 
 # ## Stores
 
-# In[12]:
+# In[10]:
 
 
 def download_stores(url, header):
@@ -165,7 +164,7 @@ def download_stores(url, header):
 
 # ## Stock
 
-# In[13]:
+# In[11]:
 
 
 def download_stock(dates, chain, url, header, body):
@@ -186,7 +185,7 @@ def download_stock(dates, chain, url, header, body):
     return df_stock
 
 
-# In[14]:
+# In[12]:
 
 
 def iterate_stock(dates, chains):
@@ -213,7 +212,7 @@ def iterate_stock(dates, chains):
 
 # ### Clean data
 
-# In[15]:
+# In[13]:
 
 
 def clean_stock(data):
@@ -227,13 +226,13 @@ def clean_stock(data):
 
 # # Join
 
-# In[16]:
+# In[14]:
 
 
 fill = lambda col1, col2: col1 if pd.isnull(col2) else (col2 if pd.isnull(col1) else col1)
 
 
-# In[17]:
+# In[15]:
 
 
 def relate_dates(df1, df2):
@@ -248,7 +247,7 @@ def relate_dates(df1, df2):
     return d
 
 
-# In[18]:
+# In[16]:
 
 
 def join_data(sales, stock, stores, df_ppst):
@@ -268,7 +267,7 @@ def join_data(sales, stock, stores, df_ppst):
         return join3
 
 
-# In[19]:
+# In[17]:
 
 
 def status(df1, df2, df3):
@@ -291,13 +290,62 @@ def status(df1, df2, df3):
             print(sum_equals, " - ", col)
 
 
-# Aquí es donde hace casi toda la magia:
+#%%
+%%time
+aux = download_sales(2020, 3, url=sales['url_sales'], body=body_sales, header=sales['headers_sales'])
+
+#%%
+aux[:3]
 
 # In[ ]:
 
-
-get_ipython().run_cell_magic('notify', '-m "¡Descarga de ECUADOR lista!"', '%%time\n# Semana ISV = Semana Genomma - 1\nfinal = pd.DataFrame()\ndf_sales = {}\ndata_sales = {}\ndf_stock = {}\ndata_stock = {}\n#df_stores = pd.read_excel(\'../../1Data/2Catalogue/SucID_41_43.xlsx\')\ndf_stores = download_stores(url_stores, headers_stores)\nstores = df_stores[[\'Local\', \'Suc. ID\']].copy()\nweeks = [datetime.today().isocalendar()[1] - i for i in range(3, 1, -1)]\nfor week in weeks:\n    ## Download the sales data\n    df_sales[str(week)] = download_sales(week, url=sales[\'url_sales\'], body=body_sales, header=sales[\'headers_sales\'])\n    ## Clean it\n    data_sales[str(week)] = clean_sales(df_sales[str(week)])\n    ## Download the stock data\n    df_stock[str(week)] = iterate_stock([clean_date(df_sales[str(week)][\'Semanas\'].unique()[0][-10:])], df_sales[str(week)][\'Cadena\'].unique().tolist())       \n    ## Clean it\n    data_stock[str(week)] = clean_stock(df_stock[str(week)])\n    ## Verify the stock data\n    print("Total de stock a la semana " + str(week + 1) + ":", "\\n")\n    print(pd.pivot_table(data_stock[str(week)], index=[\'Cadena\'], columns=[\'Fechas\'], values=[\'Stock Locales en Unidades\'], aggfunc=\'sum\'))\n    ## Assign a date to sales data and stock data\n    dict_dates = relate_dates(data_sales[str(week)][\'Semanas\'].unique(), data_stock[str(week)][\'Fechas\'].unique())\n    ## Format the date to sales data\n    sellout = data_sales[str(week)][[\'Semanas\', \'Cadena\', \'Sub Cadena\', \'Local\',\'EAN\',\'Unidades\', \'Costos B2B\', \'ID_SaSt\']].copy()\n    sellout[\'Fecha\'] = sellout[\'Semanas\'].apply(lambda x: x[-10:]).copy()\n    sellout.drop([\'Semanas\'], axis=1, inplace=True)\n    ## Format the date to stock data\n    stock = data_stock[str(week)].copy()\n    stock[\'Fecha\'] = data_stock[str(week)][\'Fechas\'].map(dict_dates)\n    stock.drop([\'Fechas\'], axis=1, inplace=True)\n    ## Merge sales, stock and stores data\n    all_data = join_data(sellout, stock, stores, df_ppst)\n    ## We verify some fields\n    print(\'\\n\', \'Missings por columna:\\n\', all_data.isnull().sum())\n    print(\'\\n\', \'Códigos de Barra sin ProPstID  \', all_data[all_data[\'ProPstID\'].isnull()][\'ProPstCodBarras\'].unique(), \'\\n\')\n    status(all_data, data_stock[str(week)], data_sales[str(week)])\n    ## We concant into a single variable\n    final = pd.concat([final, all_data], axis=0)\n    print(\'\\n\\n\')\n    print(\'-----------------------------------------------------------------------\')\n    print(\'\\n\\n\')\nfinal.reset_index(drop=True, inplace=True)')
-
+%%time
+# Semana ISV = Semana Genomma - 1
+final = pd.DataFrame()
+df_sales = {}
+data_sales = {}
+df_stock = {}
+data_stock = {}
+#df_stores = pd.read_excel('../../1Data/2Catalogue/SucID_41_43.xlsx')
+df_stores = download_stores(url_stores, headers_stores)
+stores = df_stores[['Local', 'Suc. ID']].copy()
+#weeks = [datetime.today().isocalendar()[1] - i for i in range(3, 1, -1)]
+weeks = [(2021, 1), (2021, 2), (2021, 3)]
+#weeks = [43]
+for year, week in weeks:
+    ## Download the sales data
+    df_sales[str(week)] = download_sales(year, week, url=sales['url_sales'], body=body_sales, header=sales['headers_sales'])
+    ## Clean it
+    data_sales[str(week)] = clean_sales(df_sales[str(week)])
+    ## Download the stock data
+    df_stock[str(week)] = iterate_stock([clean_date(df_sales[str(week)]['Semanas'].unique()[0][-10:])], df_sales[str(week)]['Cadena'].unique().tolist())       
+    ## Clean it
+    data_stock[str(week)] = clean_stock(df_stock[str(week)])
+    ## Verify the stock data
+    print("Total de stock a la semana " + str(week + 1) + ":", "\n")
+    print(pd.pivot_table(data_stock[str(week)], index=['Cadena'], columns=['Fechas'], values=['Stock Locales en Unidades'], aggfunc='sum'))
+    ## Assign a date to sales data and stock data
+    dict_dates = relate_dates(data_sales[str(week)]['Semanas'].unique(), data_stock[str(week)]['Fechas'].unique())
+    ## Format the date to sales data
+    sellout = data_sales[str(week)][['Semanas', 'Cadena', 'Sub Cadena', 'Local','EAN','Unidades', 'Costos B2B', 'ID_SaSt']].copy()
+    sellout['Fecha'] = sellout['Semanas'].apply(lambda x: x[-10:]).copy()
+    sellout.drop(['Semanas'], axis=1, inplace=True)
+    ## Format the date to stock data
+    stock = data_stock[str(week)].copy()
+    stock['Fecha'] = data_stock[str(week)]['Fechas'].map(dict_dates)
+    stock.drop(['Fechas'], axis=1, inplace=True)
+    ## Merge sales, stock and stores data
+    all_data = join_data(sellout, stock, stores, df_ppst)
+    ## We verify some fields
+    print('\n', 'Missings por columna:\n', all_data.isnull().sum())
+    print('\n', 'Códigos de Barra sin ProPstID  ', all_data[all_data['ProPstID'].isnull()]['ProPstCodBarras'].unique(), '\n')
+    status(all_data, data_stock[str(week)], data_sales[str(week)])
+    ## We concant into a single variable
+    final = pd.concat([final, all_data], axis=0)
+    print('\n\n')
+    print('-----------------------------------------------------------------------')
+    print('\n\n')
+final.reset_index(drop=True, inplace=True)
 
 # ## Validations
 
