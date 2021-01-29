@@ -38,11 +38,9 @@ for json_file in [file for file in os.listdir(path) if file.endswith('.json')]:
     with open(path + json_file, encoding='utf8') as f:
         globals()[json_file.split('.')[0].split('_')[1]] = json.load(f)
 
-with open('../../../01Code/01ISV/Params/ISV_tokens.json', encoding='utf8') as f:
-        tokens = json.load(f)
-
 query_dates = countries['query_dates']
 query_skus = countries['query_skus']
+query_sucs = countries['query_sucs']
 
 
 # In[3]:
@@ -86,6 +84,9 @@ df_tmpid['TmpFecha'] = df_tmpid['TmpFecha'].astype(str).copy()
 # ProPstID
 df_ppst = pd.read_sql(query_skus.replace("''", "'" + country + "'"), conn2)
 df_ppst['ProPstCodBarras'] = df_ppst['ProPstCodBarras'].astype(str).copy()
+
+# Sucursales
+df_sucs = pd.read_sql(query_sucs.replace("''", "'" + country + "'"), conn2)
 
 
 # ## Sales
@@ -297,6 +298,10 @@ aux = download_sales(2020, 3, url=sales['url_sales'], body=body_sales, header=sa
 #%%
 aux[:3]
 
+#%%
+df_stores = download_stores(url_stores, headers_stores)
+stores = df_stores[['Local', 'Suc. ID']].copy()
+
 # In[ ]:
 
 %%time
@@ -310,7 +315,7 @@ data_stock = {}
 df_stores = download_stores(url_stores, headers_stores)
 stores = df_stores[['Local', 'Suc. ID']].copy()
 #weeks = [datetime.today().isocalendar()[1] - i for i in range(3, 1, -1)]
-weeks = [(2021, 1), (2021, 2), (2021, 3)]
+weeks = [(2021, 3)]
 #weeks = [43]
 for year, week in weeks:
     ## Download the sales data
@@ -347,14 +352,16 @@ for year, week in weeks:
     print('\n\n')
 final.reset_index(drop=True, inplace=True)
 
+#%%
+
+final.isnull().sum()
+
+#%%
+final['Local'][(final['Suc. ID'].astype(str).str.contains('No'))|(final['Suc. ID'].astype(str)=='0')].unique().tolist()
+
 # ## Validations
 
 # Usualmente cuando las sucursales (_Suc. ID_) no están en ISV, vienen como _"No Definidas"_:
-
-# In[40]:
-
-
-final.shape
 
 
 # In[55]:
