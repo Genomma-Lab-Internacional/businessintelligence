@@ -91,6 +91,7 @@ df_sucs = pd.read_sql(query_sucs.replace("''", "'" + country + "'"), conn2)
 
 # ## Sales
 
+
 # In[5]:
 
 
@@ -290,6 +291,57 @@ def status(df1, df2, df3):
         else:
             print(sum_equals, " - ", col)
 
+#%%
+
+def check_sucs(lista):
+    
+    if len(lista) == 0:
+        print('No hay sucursales nuevas')
+        return([])
+    
+    #Read data
+    stores_list = pd.read_sql(query_sucs.replace("''", "'" + country + "'"), conn2)
+    stores_list.dropna(subset=['SucId'],inplace=True)
+    stores_list['key'] = stores_list['SucCodCliente'] + '-' + stores_list['CadID'].astype(str)
+    stores_list['SucId'] = stores_list['SucId'].astype('int64')
+    cat_clientes = pd.read_excel('../Params/Cat_Cadenas.xlsx')
+    cat_clientes = cat_clientes[cat_clientes['Pais'] == country]
+
+    missing_stores = df_stores[df_stores.Local.isin(lista)]
+    missing_stores = pd.merge(missing_stores,cat_clientes[['GrpNombre','Sub Cadena','CadNombre','CadID','SubCadenaNombre','Pais']],on='Sub Cadena',how='left')
+
+    if missing_stores['GrpNombre'].isnull().sum() > 0:
+        print('CLIENTE NO ENCONTRADO :\n')
+        print(missing_stores[missing_stores['GrpNombre'].isnull()][['Sub Cadena']])
+        return([])
+    
+    missing_stores['key'] = missing_stores['Codigo Local'].astype(str) + '-' + missing_stores['CadID'].astype(str)
+    missing_stores = pd.merge(missing_stores,stores_list[['key','SucId']],on='key',how='left')
+
+    if missing_stores['SucId'].isnull().sum() > 0:
+        sucs_alta = missing_stores[missing_stores['SucId'].isnull()][['Codigo Local','Local','CadID','SubCadenaNombre']].copy()
+        sucs_alta['SucNombre'] = sucs_alta['SubCadenaNombre'] + ' (' + sucs_alta['Codigo Local'].astype(str) + ')'
+        sucs_alta['DirColonia'] = 'X'
+        sucs_alta['DirEntreCalles'] = 'X'
+        sucs_alta['CodPstID'] = '00000'
+        sucs_alta['ClaTndID'] = 3
+
+        for col in ['SucUn','SucDescripcion','SucFechaApertura','SucMetros','SucTelPrincipal','SucTelAlterno','SucFax','SucMail','SucRFC','SucURL','SucFechaIng','StaGenId','CidID','DirNumExterior','DirNumInterior']:
+            sucs_alta[col] = None
+
+        sucs_alta.rename({'Codigo Local':'SucCodCliente','Local':'DirCalle'},axis=1,inplace=True)
+        sucs_alta = sucs_alta[['SucUn','SucNombre','SucDescripcion','SucFechaApertura','SucMetros','SucTelPrincipal','SucTelAlterno','SucFax','SucMail','SucRFC','SucURL','SucFechaIng','SucCodCliente','ClaTndID','CadID','StaGenId','CidID','DirCalle','DirNumExterior','DirNumInterior','DirColonia','DirEntreCalles','CodPstID']]
+
+        sucs_alta.to_excel('Cargar Sucursales ' + country + ' (' + str(week) + ' - 2021.xlsx',index=False,encoding='latin1')
+        print('Favor de dar de alta las sucursales faltantes antes de continuar...')
+        return([])
+
+    else:
+        missing_stores['Insert'] = "final.loc[final['Local'] == '" + missing_stores['Local'] + "','Suc. ID'] = '" + missing_stores['SucId'].astype('int64').astype(str) + "'"
+        print('Favor de evaluar los comandos para agregar las sucursales')
+        return(missing_stores['Insert'].tolist())
+
+
 
 #%%
 %%time
@@ -301,6 +353,7 @@ aux[:3]
 #%%
 df_stores = download_stores(url_stores, headers_stores)
 stores = df_stores[['Local', 'Suc. ID']].copy()
+
 
 # In[ ]:
 
@@ -358,6 +411,13 @@ final.isnull().sum()
 
 #%%
 final['Local'][(final['Suc. ID'].astype(str).str.contains('No'))|(final['Suc. ID'].astype(str)=='0')].unique().tolist()
+
+#%%
+l = df_stores['Local'][(df_stores['Suc. ID'].astype(str).str.contains('No'))|(df_stores['Suc. ID'].astype(str)=='0')].unique().tolist()
+l
+
+#%%
+check_sucs(l)
 
 # ## Validations
 
