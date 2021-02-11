@@ -332,7 +332,7 @@ def check_sucs(lista):
         sucs_alta.rename({'Codigo Local':'SucCodCliente','Local':'DirCalle'},axis=1,inplace=True)
         sucs_alta = sucs_alta[['SucUn','SucNombre','SucDescripcion','SucFechaApertura','SucMetros','SucTelPrincipal','SucTelAlterno','SucFax','SucMail','SucRFC','SucURL','SucFechaIng','SucCodCliente','ClaTndID','CadID','StaGenId','CidID','DirCalle','DirNumExterior','DirNumInterior','DirColonia','DirEntreCalles','CodPstID']]
 
-        sucs_alta.to_excel('Cargar Sucursales ' + country + ' (' + str(week) + ' - 2021.xlsx',index=False,encoding='latin1')
+        sucs_alta.to_excel('Cargar Sucursales ' + country + ' (' + str(week) + ' - 2021).xlsx',index=False,encoding='latin1')
         print('Favor de dar de alta las sucursales faltantes antes de continuar...')
         return([])
 
