@@ -172,7 +172,7 @@ l
 #%%
 week = 6
 x = check_sucs(l)
-#x.to_csv('Sucs_guatemala.csv')
+x.to_csv('Sucs_honduras.csv', encoding='latin1')
 
 #%%
 x
