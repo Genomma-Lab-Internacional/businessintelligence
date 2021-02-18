@@ -49,14 +49,20 @@ MAS_comSucursales = pd.read_sql(comSucursales_query,conn1)
 MAS_comDirecciones = pd.read_sql(comDirecciones_query,conn1)
 
 #%%
-alta_sucs = pd.read_excel('Cargar Sucursales Honduras (6 - 2021).xlsx')
+alta_sucs = pd.read_excel('Cargar Sucursales CHL (2 - 2021).xlsx')
 
 #%%
 for col in ['SucUn','SucDescripcion','SucTelPrincipal','SucTelAlterno','SucFax','SucRFC','SucMail','DirNumExterior','DirNumInterior','SucURL']:
     alta_sucs.loc[alta_sucs[col].isnull(),col] = ''
 
-for col in ['SucFechaApertura','SucMetros','SucFechaIng']:
-    alta_sucs.loc[alta_sucs[col].isnull(),col] = pd.NA
+# for col in ['SucFechaApertura','SucMetros','SucFechaIng']:
+#     alta_sucs.loc[alta_sucs[col].isnull(),col] = None
+
+for col in ['SucMetros']:
+    alta_sucs.loc[alta_sucs[col].isnull(),col] = 0
+
+for col in ['SucFechaApertura','SucFechaIng']:
+    alta_sucs[col] = None
 
 alta_sucs['CodPstID'] = alta_sucs['CodPstID'].apply(lambda x: x if x != 0 else '00000')
 
@@ -65,8 +71,8 @@ alta_sucs['CidID'] = 216
 
 alta_sucs['SucNitAtlas'] = ''
 alta_sucs['SucEsCedis'] = 0
-alta_sucs['TipoAndID'] = pd.NA
-alta_sucs['AsenID'] = pd.NA
+alta_sucs['TipoAndID'] = None
+alta_sucs['AsenID'] = None
 alta_sucs['TipoEntID'] = 3
 alta_sucs['TipoDirID'] = 1
 
@@ -100,7 +106,7 @@ CAT_alta_comDirecciones = alta_sucs[['DirCalle',	'DirNumExterior',	'DirNumInteri
 CAT_alta_comDirecciones['DirID'] = range(CAT_comDirecciones['DirID'][0] + 1,CAT_comDirecciones['DirID'][0] + 1 + n_sucs)
 CAT_alta_comDirecciones['DirEntidadID'] = range(CAT_comDirecciones['DirEntidadID'][0] + 1,CAT_comDirecciones['DirEntidadID'][0] + 1 + n_sucs)
 
-CAT_alta_comDirecciones = CAT_alta_comDirecciones[['DirID',	'DirCalle',	'DirNumExterior',	'DirNumInterior',	'DirColonia',	'DirEntreCalles',	'CodPstID',	'AsenID',	'CidID',	'TipoEntID',	'TipoDirID',	'DirEntidadID',	'StaGenID']].copy()
+CAT_alta_comDirecciones = CAT_alta_comDirecciones[['DirCalle',	'DirNumExterior',	'DirNumInterior',	'DirColonia',	'DirEntreCalles',	'CodPstID',	'AsenID',	'CidID',	'TipoEntID',	'TipoDirID',	'DirEntidadID',	'StaGenID']].copy()
 
 #COM SUCURSALES
 CAT_alta_comSucursales = alta_sucs[['SucUn',	'SucNombre',	'SucDescripcion',	'SucFechaApertura',	'SucMetros',	'SucTelPrincipal',	'SucTelAlterno',	'SucFax',	'SucRFC',	'SucFechaIng',	'SucCodCliente',	'SucNitAtlas',	'SucEsCedis',	'ClaTndID',	'CadID',	'TipoAndID',	'StaGenID']].copy()
@@ -109,7 +115,7 @@ CAT_alta_comSucursales['SucID'] = range(CAT_comSucursales['SucID'][0] + 1,CAT_co
 CAT_alta_comSucursales['StaGenId'] = CAT_alta_comSucursales['StaGenID']
 CAT_alta_comSucursales['SucCodCliente'] = CAT_alta_comSucursales['SucCodCliente'].astype(str)
 
-CAT_alta_comSucursales = CAT_alta_comSucursales[['SucID',	'SucUn',	'SucNombre',	'SucDescripcion',	'SucFechaApertura',	'SucMetros',	'SucTelPrincipal',	'SucTelAlterno',	'SucFax',	'SucRFC',	'SucFechaIng',	'SucCodCliente',	'SucNitAtlas',	'SucEsCedis',	'ClaTndID',	'CadID',	'TipoAndID',	'StaGenId']].copy()
+CAT_alta_comSucursales = CAT_alta_comSucursales[['SucUn',	'SucNombre',	'SucDescripcion',	'SucFechaApertura',	'SucMetros',	'SucTelPrincipal',	'SucTelAlterno',	'SucFax',	'SucRFC',	'SucFechaIng',	'SucCodCliente',	'SucNitAtlas',	'SucEsCedis',	'ClaTndID',	'CadID',	'TipoAndID',	'StaGenId']].copy()
 
 #%%
 #DATAFRAMES PARA GNM_MASTEROP
@@ -126,22 +132,22 @@ MAS_alta_comSucursales = alta_sucs[['SucUn',	'SucNombre',	'SucDescripcion',	'Suc
 
 MAS_alta_comSucursales['SucID'] = range(MAS_comSucursales['SucID'][0] + 1,MAS_comSucursales['SucID'][0] + 1 + n_sucs)
 MAS_alta_comSucursales['StaGenId'] = MAS_alta_comSucursales['StaGenID']
-MAS_alta_comSucursales['SucPromotor'] = 1
+MAS_alta_comSucursales['SucPromotor'] = 0
 MAS_alta_comSucursales['SucCodCliente'] = MAS_alta_comSucursales['SucCodCliente'].astype(str)
 
 MAS_alta_comSucursales = MAS_alta_comSucursales[['SucID',	'SucUn',	'SucNombre',	'SucDescripcion',	'SucFechaApertura',	'SucMetros',	'SucTelPrincipal',	'SucTelAlterno',	'SucFax',	'SucRFC',	'SucFechaIng',	'SucCodCliente',	'SucNitAtlas',	'SucEsCedis',	'ClaTndID',	'CadID',	'TipoAndID',	'StaGenId','SucPromotor']].copy()
 
 #%%
 #TABLAS
-
-# CIG_alta_comDirecciones
-# CIG_alta_comSucursales
+#MAS_comSucursales
+#alta_sucs
+#CIG_alta_comDirecciones
+#CIG_alta_comSucursales
 # CAT_alta_comDirecciones
 # CAT_alta_comSucursales
 # MAS_alta_comDirecciones
-# MAS_alta_comSucursales
 
-
+#%%
 # Carga de datos a la BD
 # directory = [(num_conn, nombre del df, ubicación en la BD)]
 directory = [('3', 'CIG_alta_comSucursales', 'Gnm_CIG.dbo.ComSucursalesTienda'),
