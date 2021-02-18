@@ -56,7 +56,7 @@ for col in ['SucUn','SucDescripcion','SucTelPrincipal','SucTelAlterno','SucFax',
     alta_sucs.loc[alta_sucs[col].isnull(),col] = ''
 
 for col in ['SucFechaApertura','SucMetros','SucFechaIng']:
-    alta_sucs.loc[alta_sucs[col].isnull(),col] = 'NULL'
+    alta_sucs.loc[alta_sucs[col].isnull(),col] = pd.NA
 
 alta_sucs['CodPstID'] = alta_sucs['CodPstID'].apply(lambda x: x if x != 0 else '00000')
 
@@ -65,8 +65,8 @@ alta_sucs['CidID'] = 216
 
 alta_sucs['SucNitAtlas'] = ''
 alta_sucs['SucEsCedis'] = 0
-alta_sucs['TipoAndID'] = 'NULL'
-alta_sucs['AsenID'] = 'NULL'
+alta_sucs['TipoAndID'] = pd.NA
+alta_sucs['AsenID'] = pd.NA
 alta_sucs['TipoEntID'] = 3
 alta_sucs['TipoDirID'] = 1
 
@@ -140,3 +140,38 @@ MAS_alta_comSucursales = MAS_alta_comSucursales[['SucID',	'SucUn',	'SucNombre',	
 # CAT_alta_comSucursales
 # MAS_alta_comDirecciones
 # MAS_alta_comSucursales
+
+
+# Carga de datos a la BD
+# directory = [(num_conn, nombre del df, ubicación en la BD)]
+directory = [('3', 'CIG_alta_comSucursales', 'Gnm_CIG.dbo.ComSucursalesTienda'),
+             ('2', 'CAT_alta_comSucursales', 'Gnm_CatMaestros.dbo.ComSucursalesTienda'),
+             ('1', 'MAS_alta_comSucursales', 'Gnm_MasterOp.dbo.ComSucursalesTienda'),
+             ('3', 'CIG_alta_comDirecciones', 'Gnm_CIG.dbo.ComDirecciones'),
+             ('2', 'CAT_alta_comDirecciones', 'Gnm_CatMaestros.dbo.ComDirecciones'),
+             ('1', 'MAS_alta_comDirecciones', 'Gnm_MasterOp.dbo.ComDirecciones')]
+
+for num_conn, table, path in directory:
+    # Generamos el insert query para cada tabla
+    query_insert = 'INSERT INTO ' + path + ' ('
+    num = 0
+    part_columns = ''
+    part_rows = ''
+    for col in eval(table + '.columns'):
+        part_columns += col +', '
+        part_rows += 'row.' + col + ', '
+        num += 1
+    part_values = '?,'*num
+    query_insert += part_columns[:-2] + ')\nVALUES (' + part_values[:-1] + ')'
+    # Instanciamos el conector de la BD
+    exec('cursor = conn' + num_conn + '.cursor()')
+    # Cargamos los datos
+    try:
+        for row in eval(table + '.itertuples()'):
+            cursor.execute(query_insert, eval(part_rows[:-2]))
+        cursor.commit()
+        print(str(eval(table + '.shape[0]')) + " registros cargados en", path)
+    except Exception as e:
+        print('Error en', path)
+        print(e, '\n')
+    cursor.close()
