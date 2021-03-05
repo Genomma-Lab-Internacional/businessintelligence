@@ -30,7 +30,7 @@ ip.register_magics(jupyternotify.JupyterNotifyMagics)
 # In[2]:
 
 
-country = 'Honduras'
+country = 'Guatemala'
 path = '../Params/'
 
 # jsons
@@ -170,11 +170,10 @@ l = df_stores['Local'][(df_stores['Suc. ID'].astype(str).str.contains('No'))|(df
 l
 
 #%%
-week = 6
+week = 7
 x = check_sucs(l)
-x.to_csv('Sucs_honduras.csv', encoding='latin1')
+
 
 #%%
 x
-
-
+#x.to_csv('Sucs_Guatemala.csv', encoding='latin1')
