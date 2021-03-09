@@ -1,2 +1,6 @@
-.ipynb_checkpoints
-Params/
+ISV_Weekly/.ipynb_checkpoints
+*.xlsx
+*.csv
+*.txt
+*.json
+*.sql
